@@ -1,8 +1,10 @@
 import { ChangeEvent, useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import styled from '@emotion/styled';
-import { createPost, getPostById, updatePostById } from '../api';
 import { TAG } from '../api/types';
+import useGetPostById from '../queries/useGetPostById.ts';
+import useCreatePost from '../queries/useCreatePost.ts';
+import useUpdatePostById from '../queries/useUpdatePostById.ts';
 
 const TitleInput = styled.input`
   display: block;
@@ -35,7 +37,7 @@ const Editor = styled.textarea`
   border: none;
   resize: none;
   font-size: 1.125rem;
-  flex: 1 1 0%;
+  flex: 1 1 0;
 `;
 
 const BottomSheet = styled.div`
@@ -85,12 +87,100 @@ const SaveButton = styled.button`
 `;
 
 const Write = () => {
-  // todo (5) 게시글 작성 페이지 만들기
+  const [title, setTitle] = useState('');
+  const [content, setContent] = useState('');
+  const [tag, setTag] = useState<TAG>(TAG.REACT);
+  const tagList = Object.keys(TAG);
+
+  const { state } = useLocation();
+  const isEdit = state?.postId;
+  const navigate = useNavigate();
+  const { data: post, isSuccess: isSuccessFetchPost } = useGetPostById(state?.postId);
+  const { mutate: createPost } = useCreatePost();
+  const { mutate: updatePost } = useUpdatePostById();
+
+  const handleChangeTitle = (event: ChangeEvent<HTMLInputElement>) => {
+    setTitle(event.target.value);
+  };
+
+  const handleChangeContent = (event: ChangeEvent<HTMLTextAreaElement>) => {
+    setContent(event.target.value);
+  };
+
+  const handleChangeTag = (event: ChangeEvent<HTMLSelectElement>) => {
+    setTag(event.target.value as TAG);
+  };
+
+  // const navigate = useNavigate();
+
+  // const requestCreatePost = async () => {
+  //   await createPost(title, content, tag);
+  // };
+
+  // const requestUpdatePost = async () => {
+  //   await updatePostById(state.postId, title, content, tag);
+  // };
+
+  const clickConfirm = () => {
+    if (!title || !content) {
+      alert(' 빈 값이 존재합니다.');
+      return;
+    }
+
+    if (isEdit) {
+      // requestUpdatePost();requestUpdatePost
+      updatePost({ postId: state.postId, title, contents: content, tag });
+    } else {
+      // requestCreatePost();
+      createPost({ title, contents: content, tag });
+    }
+    navigate('/');
+  };
+
+  // const { state } = useLocation();
+  // const isEdit = state?.postId;
+
+  // const fetchPostById = async (postId: string) => {
+  //   const { data: post } = await getPostById(postId);
+  //   setTitle(post.title);
+  //   setContent(post.contents);
+  //   setTag(post.tag);
+  // };
+
+  // useEffect(() => {
+  //   if (isEdit) {
+  //     // fetchPostById(state.postId);
+  //     if (isSuccessFetchPost) {
+  //       setTitle(post.title);
+  //       setContent(post.contents);
+  //       setTag(post.tag);
+  //     }
+  //   }, [isSuccessFetchPost]);
+  useEffect(() => {
+    if (isSuccessFetchPost) {
+      setTitle(post.title);
+      setContent(post.contents);
+      setTag(post.tag);
+    }
+  }, [isSuccessFetchPost]);
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      나는 글쓰기
-      <div style={{ height: 'calc(100% - 4rem)', paddingBottom: '4rem' }}>{/*todo (5-2) 제목 / 태그 셀렉 / 내용 입력란 추가*/}</div>
-      <BottomSheet>{/*todo (5-3) 나가기, 저장하기 버튼 추가*/}</BottomSheet>
+      <div style={{ height: 'calc(100% - 4rem)', paddingBottom: '4rem' }}>
+        <TitleInput placeholder="제목을 입력하세요." value={title} onChange={handleChangeTitle} />
+        <TagSelect value={tag} onChange={handleChangeTag} placeholder={'태그를 선택하세요.'}>
+          {tagList.map(tag => {
+            return <option key={tag}>{tag}</option>;
+          })}
+        </TagSelect>
+        <Editor value={content} onChange={handleChangeContent} placeholder="내용을 입력하세요." />
+      </div>
+      <BottomSheet>
+        <Link to="/">
+          <ExitButton>나가기</ExitButton>
+        </Link>
+        <SaveButton onClick={clickConfirm}>저장하기</SaveButton>
+      </BottomSheet>
     </div>
   );
 };

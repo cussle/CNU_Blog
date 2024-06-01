@@ -1,16 +1,15 @@
-import { useEffect, useState } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import styled from '@emotion/styled';
-import { deletePostById, getPostById } from '../api';
-import { IPost } from '../api/types';
 import NotFound from '../components/NotFound';
 import Tag from '../components/Tag';
+import useGetPostById from '../queries/useGetPostById.ts';
+import useDeletePostById from '../queries/useDeletePostById.ts';
 
 const Title = styled.h1`
   font-size: 3rem;
   line-height: 1.5;
   letter-spacing: -0.004em;
-  margin-top: 0px;
+  margin-top: 0;
   font-weight: 800;
   color: #212529;
   margin-bottom: 2rem;
@@ -24,7 +23,7 @@ const Toolbar = styled.div`
 `;
 
 const TextButton = styled.button`
-  padding: 0px;
+  padding: 0;
   outline: none;
   border: none;
   background: none;
@@ -46,7 +45,7 @@ const Info = styled.div`
 
 const ContentsArea = styled.div`
   width: 768px;
-  margin: 5rem auto 0px;
+  margin: 5rem auto 0;
   font-size: 1.125rem;
   color: #212529;
   line-height: 1.7;
@@ -62,20 +61,39 @@ const Text = styled.p`
 const Post = () => {
   const params = useParams();
   const { postId = '' } = params;
-  const [post, setPost] = useState<IPost | null>(null);
+  // const [post, setPost] = useState<IPost | null>(null);
+  const { data: post, isError, isLoading } = useGetPostById(postId);
+  const { mutate: deletePost } = useDeletePostById();
 
-  const fetchPostById = async (id: string) => {
-    const { data } = await getPostById(id);
-    setPost(data);
+  // const fetchPostById = async (id: string) => {
+  //   const { data } = await getPostById(id);
+  //   setPost(data);
+  // };
+
+  // useEffect(() => {
+  //   if (postId) {
+  //     fetchPostById(postId);
+  //   }
+  // }, []);
+
+  const clickDeleteButton = () => {
+    const result = window.confirm('정말 게시글을 삭제하시겠습니까?');
+    if (result) {
+      // requestDeletePostById();
+      deletePost({ postId });
+    }
   };
 
-  useEffect(() => {
-    if (postId) {
-      fetchPostById(postId);
-    }
-  }, []);
+  // const requestDeletePostById = async () => {
+  //   await deletePostById(postId);
+  //   navigate('/');
+  // };
 
-  if (!post) {
+  if (isLoading) {
+    return <div> ... 불러오는 중 ... </div>;
+  }
+
+  if (!post || isError) {
     return <NotFound />;
   }
 
@@ -90,8 +108,10 @@ const Post = () => {
           </Info>
           <div>
             {/*todo 수정/삭제 버튼 작성*/}
-            <TextButton>수정</TextButton>
-            <TextButton>삭제</TextButton>
+            <Link to="/write" state={{ postId }} style={{ marginRight: 10 }}>
+              <TextButton>수정</TextButton>
+            </Link>
+            <TextButton onClick={clickDeleteButton}>삭제</TextButton>
           </div>
         </Toolbar>
         {post?.tag && (
